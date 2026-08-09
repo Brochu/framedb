@@ -53,6 +53,10 @@ rdcstr DoStringise(const ResultCode &el)
     END_ENUM_STRINGISE();
 }
 
+static const char *FDB_SCHEMA_SQL =
+#include "fdb_schema.inc"
+;
+
 int main(int argc, char **argv) {
     printf("[MAIN] FrameDB\n");
 
@@ -60,6 +64,7 @@ int main(int argc, char **argv) {
     int res = sqlite3_open(":memory:", &sql);
     printf("[MAIN] opening SQLite3 in-memory DB - res = %i\n", res);
     res = sqlite3_close(sql);
+    printf("--- SCRIPT---\n%s\n---\n", FDB_SCHEMA_SQL);
     printf("[MAIN] closing SQLite3 in-memory DB - res = %i\n", res);
     
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
@@ -67,6 +72,8 @@ int main(int argc, char **argv) {
     printf("[MAIN] opening capture file - code = %i\n", out.code);
     rdcstr error = out.Message();
     printf("\t 'error: %s'\n", error.c_str());
+    
+    //TODO Create a RenderDoc capture to test extracting info out of it
 
     return 0;
 }
