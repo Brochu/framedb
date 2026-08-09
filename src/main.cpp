@@ -3,6 +3,12 @@
 #include "sqlite3.h"
 #include "renderdoc_replay.h"
 
+// renderdoc.dll's DllMain looks for this exported symbol in the host process. Without it the DLL
+// assumes it was injected into a game, installs its D3D12/DXGI capture hooks, and never flips into
+// replay mode -- the replay device then gets built on top of those hooks and dies partway through
+// ReadLogInitialisation. Must be at global scope so it lands in the exe's export table.
+REPLAY_PROGRAM_MARKER()
+
 template <>
 rdcstr DoStringise(const uint32_t &el)
 {
@@ -67,13 +73,58 @@ int main(int argc, char **argv) {
     printf("--- SCRIPT---\n%s\n---\n", FDB_SCHEMA_SQL);
     printf("[MAIN] closing SQLite3 in-memory DB - res = %i\n", res);
     
+    // Before InitialiseReplay, so the replay-app sanity checks it logs land in the file.
+    RENDERDOC_SetDebugLogFile("framedb.log");
+
+    GlobalEnvironment env;
+    rdcarray<rdcstr> args = { "-windowed", "-resx=1920", "resy=1080" };
+    RENDERDOC_InitialiseReplay(env, args);
+
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
-    ResultDetails out = file->OpenFile("test", "rdc", NULL);
+    ResultDetails out = file->OpenFile("./data/test_capture_UE56.rdc", "rdc", NULL);
     printf("[MAIN] opening capture file - code = %i\n", out.code);
     rdcstr error = out.Message();
     printf("\t 'error: %s'\n", error.c_str());
     
-    //TODO Create a RenderDoc capture to test extracting info out of it
+    /*
+    TODO Create a RenderDoc capture to test extracting info out of it
+    - Walks `IReplayController::GetRootActions()` depth-first, maintaining a marker stack from
+      actions flagged `ActionFlags::PushMarker` to build `marker_path`.
+    - For each draw/dispatch action: `SetFrameEvent(eventId, false)`, then `GetPipelineState()` —
+      the API-agnostic `PipeState`, not `GetD3D12PipelineState()` — and pull the PSO `ResourceId`,
+      per-stage shader `ResourceId`s, `GetOutputTargets()`, `GetDepthTarget()`.
+    - Dumps one line per action to a file.
+    */
+    rdcstr driver_name = file->DriverName();
+    printf("[MAIN] driver name = %s\n", driver_name.c_str());
+    ReplaySupport support = file->LocalReplaySupport();
+    printf("[MAIN] replay support = %i\n", support);
 
+    ReplayOptions opts;
+    rdcpair<ResultDetails, IReplayController *> result = file->OpenCapture(opts, nullptr);
+    if(!result.first.OK())
+    {
+        // On failure the controller is null, so this has to come before any use of it.
+        printf("[MAIN] opening capture failed - code = %i\n", result.first.code);
+        printf("\t 'error: %s'\n", result.first.Message().c_str());
+        file->Shutdown();
+        RENDERDOC_ShutdownReplay();
+        return 1;
+    }
+    IReplayController *replay = result.second;
+    rdcarray<ActionDescription> actions = replay->GetRootActions();
+    for (ActionDescription &a : actions) {
+        printf("\tFound action - [%i][%#x] `%s`\n", a.eventId, a.flags, a.customName.c_str());
+    }
+
+    FrameDescription frame = replay->GetFrameInfo();
+    FrameStatistics s = frame.stats;
+    printf("[MAIN] current frame draw calls count = %i\n", s.draws.calls);
+
+    replay->Shutdown();
+    file->Shutdown();
+    file = nullptr;
+
+    RENDERDOC_ShutdownReplay();
     return 0;
 }
