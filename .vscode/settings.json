@@ -2,53 +2,11 @@
     "C_Cpp.intelliSenseEngine": "default",
     "C_Cpp.default.compilerPath": "cl.exe",
     "files.associations": {
-        "*.inc": "cpp"
     },
     "search.exclude": {
-        "bin/**": true,
+        "bin/**": true
     },
     "files.watcherExclude": {
         "bin/obj/**": true
-    },
-
-    // msbuild/cl/link only exist on PATH inside a VS developer shell. This profile enters one
-    // on terminal launch, so the integrated terminal and the tasks in tasks.json both work
-    // without opening "Developer PowerShell for VS 2022" separately.
-    //
-    // - VS is located via vswhere (fixed install path by design), so this survives a different
-    //   VS edition, version, or install location rather than hardcoding one.
-    // - -SkipAutomaticLocation keeps the terminal in the workspace folder; without it the shell
-    //   jumps to the VS default source directory.
-    // - -arch=x64 -host_arch=x64 matters here: the default can be x86, which would silently
-    //   produce objects that fail to link against the x64 renderdoc.lib.
-    // - The PATH prepend is only to stop Enter-VsDevShell warning that vswhere isn't on PATH.
-    //
-    // Do NOT use ${env:NAME} syntax in the command below. That is also VS Code's own variable
-    // syntax, so VS Code substitutes it before PowerShell sees it -- ${env:ProgramFiles(x86)}
-    // becomes a bare unquoted C:\Program Files (x86), and PowerShell then parses "(x86)" as a
-    // command invocation and the whole profile fails. [Environment]::GetEnvironmentVariable()
-    // reads the same value in a form VS Code leaves alone. ($env:PATH without braces is fine.)
-    "terminal.integrated.profiles.windows": {
-        "Developer PowerShell": {
-            "path": "powershell.exe",
-            "icon": "terminal-powershell",
-            "args": [
-                "-NoExit",
-                "-NoLogo",
-                "-Command",
-                "$vsw = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)') + '\\Microsoft Visual Studio\\Installer'; $env:PATH = $vsw + ';' + $env:PATH; $vs = & vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath; Import-Module ($vs + '\\Common7\\Tools\\Microsoft.VisualStudio.DevShell.dll'); Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64' | Out-Null"
-            ]
-        }
-    },
-    "terminal.integrated.defaultProfile.windows": "Developer PowerShell",
-
-    // Tasks and the debugger must NOT use the profile above. VS Code runs a shell task by
-    // appending "-Command <task command>" to the profile's own args, which collides with the
-    // -Command the profile already uses -- the task gets glued onto the end of the profile's
-    // command and PowerShell fails to parse it. So the automation shell stays plain, and
-    // compile.bat sets up the MSVC environment on its own instead.
-    "terminal.integrated.automationProfile.windows": {
-        "path": "powershell.exe",
-        "args": [ "-NoLogo" ]
     }
 }

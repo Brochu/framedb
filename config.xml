@@ -7,7 +7,7 @@
         <!-- Switch to src\~framedb.cpp once the unity TU exists; it stays a one-line change. -->
         <src_files>src\main.cpp</src_files>
 
-        <includes>-Isrc\ -I$(tp_dir)\renderdoc\ -I$(tp_dir)\sqlite\</includes>
+        <includes>-Isrc\ -Iscripts\ -I$(tp_dir)\renderdoc\ -I$(tp_dir)\sqlite\</includes>
 
         <!-- RENDERDOC_PLATFORM_WIN32 is mandatory: without it apidefs.h hard-errors
              with "Unknown platform". See thirdparty/README.md. -->

@@ -5,7 +5,8 @@
             "name": "Win32-MSVC",
             "includePath": [
                 "${workspaceFolder}/thirdparty/renderdoc",
-                "${workspaceFolder}/thirdparty/sqlite"
+                "${workspaceFolder}/thirdparty/sqlite",
+                "${workspaceFolder}/scripts"
             ],
             "defines": ["RENDERDOC_PLATFORM_WIN32"],
             "compilerPath": "cl.exe",
