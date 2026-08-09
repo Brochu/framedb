@@ -1,0 +1,38 @@
+{
+    "version": "2.0.0",
+    // These call compile.bat rather than msbuild directly. compile.bat initialises the MSVC
+    // environment itself when it isn't already present, so tasks do not depend on the terminal
+    // profile -- see the note on automationProfile in settings.json.
+    "tasks": [
+        {
+            "label": "build all",
+            "type": "shell",
+            "command": "./compile.bat",
+            "args": [ "all" ],
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build framedb",
+            "type": "shell",
+            "command": "./compile.bat",
+            "args": [ "framedb" ],
+            "group": "build",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "./compile.bat",
+            "args": [ "clean" ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run framedb",
+            "type": "shell",
+            "command": "./run.bat",
+            "dependsOn": "build all",
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,54 @@
+<Project DefaultTargets="framedb" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <tp_dir>thirdparty</tp_dir>
+        <obj_dir>bin\obj</obj_dir>
+        <bin_dir>bin</bin_dir>
+
+        <!-- Switch to src\~framedb.cpp once the unity TU exists; it stays a one-line change. -->
+        <src_files>src\main.cpp</src_files>
+
+        <includes>-Isrc\ -I$(tp_dir)\renderdoc\ -I$(tp_dir)\sqlite\</includes>
+
+        <!-- RENDERDOC_PLATFORM_WIN32 is mandatory: without it apidefs.h hard-errors
+             with "Unknown platform". See thirdparty/README.md. -->
+        <defines>-DRENDERDOC_PLATFORM_WIN32</defines>
+
+        <!-- -MD (not -MT): the process loads renderdoc.dll and sqlite3.dll, and rdcarray/rdcstr
+             allocate through the DLL's own exported allocator. -->
+        <c_flags>-nologo -c -std:c++17 -EHsc -Zi -MD -TP -Fo$(obj_dir)\ -Fd$(obj_dir)\framedb.compiler.pdb $(includes) $(defines)</c_flags>
+
+        <link_flags>-NOLOGO -DEBUG</link_flags>
+        <libs>$(tp_dir)\renderdoc\renderdoc.lib $(tp_dir)\sqlite\sqlite3.lib</libs>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Leaves the copied .dlls in place; the build re-copies them anyway. -->
+        <clean_files Include="$(obj_dir)\*.*;$(bin_dir)\framedb.exe;$(bin_dir)\framedb.pdb;$(bin_dir)\framedb.ilk;" />
+
+        <!-- Must sit beside framedb.exe so the executable-directory search order wins over any
+             other RenderDoc install on the machine (e.g. C:\RenderDoc), whose renderdoc.dll is a
+             different binary despite also reporting 1.45. -->
+        <runtime_dlls Include="$(tp_dir)\renderdoc\renderdoc.dll;$(tp_dir)\sqlite\sqlite3.dll;" />
+    </ItemGroup>
+
+    <!-- === CLEAN === -->
+    <Target Name="clean">
+        <Delete Files="@(clean_files)" ContinueOnError="true" />
+        <Message Text="=== Clean complete ===" Importance="high" />
+    </Target>
+
+    <!-- === FRAMEDB === -->
+    <Target Name="framedb">
+        <MakeDir Directories="$(obj_dir);$(bin_dir)" />
+
+        <Exec Command="cl $(c_flags) $(src_files)" />
+        <Exec Command="link.exe $(link_flags) $(obj_dir)\*.obj $(libs) -OUT:$(bin_dir)\framedb.exe" />
+
+        <Copy SourceFiles="@(runtime_dlls)" DestinationFolder="$(bin_dir)" SkipUnchangedFiles="true" />
+        <Message Text="=== Build complete: framedb ===" Importance="high" />
+    </Target>
+
+    <Target Name="all" DependsOnTargets="framedb">
+        <Message Text="=== Build complete: all ===" Importance="high" />
+    </Target>
+</Project>
