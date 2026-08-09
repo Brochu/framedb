@@ -23,7 +23,8 @@
 
     <ItemGroup>
         <!-- Leaves the copied .dlls in place; the build re-copies them anyway. -->
-        <clean_files Include="$(obj_dir)\*.*;$(bin_dir)\framedb.exe;$(bin_dir)\framedb.pdb;$(bin_dir)\framedb.ilk;" />
+        <!-- .exp/.lib appear because the exe exports renderdoc__replay__marker. -->
+        <clean_files Include="$(obj_dir)\*.*;$(bin_dir)\framedb.exe;$(bin_dir)\framedb.pdb;$(bin_dir)\framedb.ilk;$(bin_dir)\framedb.exp;$(bin_dir)\framedb.lib;" />
 
         <!-- Must sit beside framedb.exe so the executable-directory search order wins over any
              other RenderDoc install on the machine (e.g. C:\RenderDoc), whose renderdoc.dll is a
