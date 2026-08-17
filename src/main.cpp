@@ -111,10 +111,22 @@ int main(int argc, char **argv) {
         RENDERDOC_ShutdownReplay();
         return 1;
     }
+
     IReplayController *replay = result.second;
-    rdcarray<ActionDescription> actions = replay->GetRootActions();
-    for (ActionDescription &a : actions) {
-        printf("\tFound action - [%i][%#x] `%s`\n", a.eventId, a.flags, a.customName.c_str());
+    const rdcarray<ActionDescription> &roots = replay->GetRootActions();
+    rdcarray<const ActionDescription *> stack;
+    for (int i = roots.size() - 1; i >= 0; i--) {
+        stack.push_back(&roots[i]);
+    }
+
+    while(!stack.empty()) {
+        const ActionDescription *a = stack.back();
+        stack.pop_back();
+
+        printf("\tFound action - [%i][%#x] `%s`\n", a->eventId, a->flags, a->customName.c_str());
+        for (int i = a->children.size() - 1; i >= 0; i--) {
+            stack.push_back(&a->children[i]);
+        }
     }
 
     FrameDescription frame = replay->GetFrameInfo();
